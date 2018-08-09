@@ -1,3 +1,1 @@
-this is just used to test
-then i just delete something
-i add something
+the code is to calculate the Navier_Stokes equation 
