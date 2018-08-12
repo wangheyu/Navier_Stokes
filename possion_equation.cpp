@@ -217,7 +217,7 @@ int main(int argc, char * argv[])
     /// 空间准备完毕.
 
     //
-    //analyse the non-zero element
+    // 统计非零元个数，用以建立稀疏矩阵结构.
     //
 
     
@@ -284,8 +284,8 @@ int main(int argc, char * argv[])
 
 
     //
-    //the matrix modul has been created,
-    //then we need to calculate the matrix's value.
+    // 稀疏矩阵模板创建完毕
+    // 接下来我们要计算系数矩阵中各项的值
     //
 
     
@@ -334,7 +334,7 @@ int main(int argc, char * argv[])
     }
 
     //
-    //then we need to deal the boundary.
+    // 接下来处理边界条件，改变右端项
     //
     
     Vector<double> solution(total_n_dof);
@@ -358,55 +358,55 @@ int main(int argc, char * argv[])
     for (int i = 0; i < n_v; i++)
     {
     	FEMSpace<double, DIM>::dof_info_t dof = fem_space_v.dofInfo(i);
-    	// if (dof.boundary_mark == 1)
-    	// {
-    	//     SparseMatrix<double>::iterator row_iterator = system_matrix.begin(i);
-    	//     SparseMatrix<double>::iterator row_end = system_matrix.end(i);
-    	//     double diag = row_iterator->value();
-    	//     double bnd_value = zfun(dof.interp_point);
-        //     rhs(i) = diag * bnd_value;
-    	//     for (++row_iterator; row_iterator != row_end; ++row_iterator)
-        //     {
-        //     	row_iterator->value() = 0.0;
-    	// 	int k = row_iterator->column();
-        //         SparseMatrix<double>::iterator col_iterator = system_matrix.begin(k);   
-        //         SparseMatrix<double>::iterator col_end = system_matrix.end(k);   
-    	//     	for (++col_iterator; col_iterator != col_end; ++col_iterator)
-    	// 		if (col_iterator->column() == i)
-    	// 		    break;
-    	// 	if (col_iterator == col_end)
-    	// 	{
-    	// 		std::cerr << "Error!" << std::endl;
-    	// 		exit(-1);
-    	// 	}
-    	// 	rhs(k) -= col_iterator->value() * bnd_value; 
-    	// 	col_iterator->value() = 0.0;	
-        //     }
-    	//     row_iterator = system_matrix.begin(i + n_v);
-    	//     row_end = system_matrix.end(i + n_v);
-    	//     diag = row_iterator->value();
-    	//     bnd_value = zfun(dof.interp_point); 
-        //     rhs(i + n_v) = diag * bnd_value;
-    	//     for (++row_iterator; row_iterator != row_end; ++row_iterator)
-        //     {
-        //     	row_iterator->value() = 0.0;
-    	//     	int k = row_iterator->column();
-        //         SparseMatrix<double>::iterator col_iterator = system_matrix.begin(k);   
-        //         SparseMatrix<double>::iterator col_end = system_matrix.end(k);   
-    	//     	for (++col_iterator; col_iterator != col_end; ++col_iterator)
-	// 	{
-    	//     		if (col_iterator->column() == i + n_v)
-    	//     		    break;
-	// 	}
-    	//     	if (col_iterator == col_end)
-    	//     	{
-    	//     		std::cerr << "Error!" << std::endl;
-    	//     		exit(-1);
-    	//     	}
-    	//     	rhs(k) -= col_iterator->value() * bnd_value; 
-    	//     	col_iterator->value() = 0.0;	
-        //     }  
-    	// }	
+    	if (dof.boundary_mark == 1)
+    	{
+    	    SparseMatrix<double>::iterator row_iterator = system_matrix.begin(i);
+    	    SparseMatrix<double>::iterator row_end = system_matrix.end(i);
+    	    double diag = row_iterator->value();
+    	    double bnd_value = zfun(dof.interp_point);
+            rhs(i) = diag * bnd_value;
+    	    for (++row_iterator; row_iterator != row_end; ++row_iterator)
+            {
+            	row_iterator->value() = 0.0;
+    		int k = row_iterator->column();
+                SparseMatrix<double>::iterator col_iterator = system_matrix.begin(k);   
+                SparseMatrix<double>::iterator col_end = system_matrix.end(k);   
+    	    	for (++col_iterator; col_iterator != col_end; ++col_iterator)
+    			if (col_iterator->column() == i)
+    			    break;
+    		if (col_iterator == col_end)
+    		{
+    			std::cerr << "Error!" << std::endl;
+    			exit(-1);
+    		}
+    		rhs(k) -= col_iterator->value() * bnd_value; 
+    		col_iterator->value() = 0.0;	
+            }
+    	    row_iterator = system_matrix.begin(i + n_v);
+    	    row_end = system_matrix.end(i + n_v);
+    	    diag = row_iterator->value();
+    	    bnd_value = zfun(dof.interp_point); 
+            rhs(i + n_v) = diag * bnd_value;
+    	    for (++row_iterator; row_iterator != row_end; ++row_iterator)
+            {
+            	row_iterator->value() = 0.0;
+    	    	int k = row_iterator->column();
+                SparseMatrix<double>::iterator col_iterator = system_matrix.begin(k);   
+                SparseMatrix<double>::iterator col_end = system_matrix.end(k);   
+    	    	for (++col_iterator; col_iterator != col_end; ++col_iterator)
+		{
+    	    		if (col_iterator->column() == i + n_v)
+    	    		    break;
+		}
+    	    	if (col_iterator == col_end)
+    	    	{
+    	    		std::cerr << "Error!" << std::endl;
+    	    		exit(-1);
+    	    	}
+    	    	rhs(k) -= col_iterator->value() * bnd_value; 
+    	    	col_iterator->value() = 0.0;	
+            }  
+    	}	
     	if (dof.boundary_mark == 2)
     	{
     	    SparseMatrix<double>::iterator row_iterator = system_matrix.begin(i);
@@ -455,6 +455,8 @@ int main(int argc, char * argv[])
             }  
     	}	
     }		
+	
+   // 到此为止Ax=b的问题已经建立完毕
     /*
     std::cout.setf(std::ios::fixed);
     std::cout.precision(5);
@@ -682,6 +684,7 @@ int main(int argc, char * argv[])
     }
 
 
+// 之前的工作有何作用？
     StokesPreconditioner preconditioner;
     preconditioner.initialize(vxvx, vyvy, mass_p);
     
@@ -690,6 +693,10 @@ int main(int argc, char * argv[])
 //    SolverGMRES<Vector<double> > gmres(solver_control);
 //    gmres.solve (system_matrix, solution, rhs, PreconditionIdentity());	
 
+	
+//  在处理NS系统中的对称不定问题时，我们需要用gmres
+//  同时在这里，我们需要加入一步循环，即迭代过程	
+	
 //  更好的求解器是专门处理对称不定系统的MinRes, 效率相对GMRES好很多.     
     SolverMinRes<Vector<double> > minres(solver_control);
 //  然而不做任何预处理仍然是低效的.    
@@ -726,6 +733,7 @@ int main(int argc, char * argv[])
     return 0;
 };
 
+// 真解
 double ux(const double * p)
 {
     return 20 * p[0] * p[1] * p[1] * p[1];
@@ -743,11 +751,13 @@ double up(const double * p)
     return 60 * p[0] * p[0] * p[1] - 20 * p[1] * p[1] * p[1];
 };
 
+// 右端项
 double f(const double * p)
 {
     return 0;
 };
 
+// 边界条件
 double zfun(const double * p)
 {
     return 0;
