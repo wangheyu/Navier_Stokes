@@ -700,14 +700,14 @@ int main(int argc, char * argv[])
 //  更好的求解器是专门处理对称不定系统的MinRes, 效率相对GMRES好很多.     
     SolverMinRes<Vector<double> > minres(solver_control);
 //  然而不做任何预处理仍然是低效的.    
-//    minres.solve (system_matrix, solution, rhs, PreconditionIdentity());
+    minres.solve (system_matrix, solution, rhs, PreconditionIdentity());
 //  在最基本的情况下, 至少也应该做一个MIC预处理. 由于系统矩阵不定且右下角有零块, 因此
 //  必须对预处理阵的对角元加强以确保MIC能够完成. 对角强化参数是一个经验参数.     
 //    SparseMIC<double> mic;
 //    SparseMIC<double>::AdditionalData ad;
 //    ad.strengthen_diagonal = 0.5;
 //    mic.initialize(system_matrix, ad);
-    minres.solve (system_matrix, solution, rhs, preconditioner);	
+//    minres.solve (system_matrix, solution, rhs, preconditioner);	
 //    minres.solve (system_matrix, solution, rhs, mic);	
     for (int i = 0; i < n_v; i++)
 	vx(i) = solution(i);
@@ -724,26 +724,322 @@ int main(int argc, char * argv[])
     Operator::L2Interpolate(p, solution_output);
     solution_output.writeOpenDXData("p.dx");
 
-    double error1 = Functional::L2Error(vx, FunctionFunction<double>(&ux), 10);
-    std::cout << "L2 xError = " << error1 << std::endl;
-    //  double error2 = Functional::L2Error(vy, FunctionFunction<double>(&uy), 10);
-    //  std::cout << "L2 yError = " << error2 << std::endl;
-    // double error3 = Functional::L2Error(p, FunctionFunction<double>(&ux), 10);
-    //  std::cout << "L2 pError = " << error3 << std::endl;
+    
+    // the error
+    
+    //double error1 = Functional::L2Error(vx, FunctionFunction<double>(&ux), 10);
+    // std::cout << "L2 xError = " << error1 << std::endl;
+
+
+    // - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- - //
+    //
+    // we now begin to solve the Navier_Stokes equation here, with the
+    // u0 = soluation, espeacially v = 1;
+    //
+    //
+    // 统计非零元个数，用以建立稀疏矩阵结构.
+    //
+    // - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- - //
+    
+    n_v = fem_space_v.n_dof();
+    n_p = fem_space_p.n_dof();
+    total_n_dof = 2 * n_v + n_p;
+    std::vector<unsigned int> max_couples(total_n_dof);
+
+    n_dof_P1 = P1_element[0].n_dof();
+    n_dof_P2 = P2_element[0].n_dof();
+
+    the_element = fem_space_v.beginElement();
+    end_element = fem_space_v.endElement();
+    for (; the_element != end_element; ++the_element) 
+    {
+	const std::vector<int>&	element_dof = the_element->dof();
+	for (int i = 0; i < n_dof_P2; ++i)
+	{
+	    max_couples[element_dof[i]] += (2 * n_dof_P2 + n_dof_P1);
+	    max_couples[element_dof[i] + n_v] += (2 * n_dof_P2 + n_dof_P1);
+	}
+    }
+
+    the_element = fem_space_p.beginElement();
+    end_element = fem_space_p.endElement();
+    for (; the_element != end_element; ++the_element) 
+    {
+	const std::vector<int>& element_dof = the_element->dof();
+	for (int i = 0; i < n_dof_P1; ++i)
+	    max_couples[element_dof[i] + 2 * n_v] += (2 * n_dof_P2 + n_dof_P1);
+    }
+    SparsityPattern sp_system_matrixs(total_n_dof, max_couples);
+  
+    the_element = fem_space_v.beginElement();
+    end_element = fem_space_v.endElement();
+    for (; the_element != end_element; ++the_element) 
+    {
+	const std::vector<int>& element_dof_v = the_element->dof();
+	Element<double, DIM>& element_p = fem_space_p.element(the_element->index());
+	const std::vector<int>& element_dof_p = element_p.dof();
+	for (int i = 0; i < n_dof_P2; ++i)
+	{
+	    for (int j = 0; j < n_dof_P2; ++j)
+	    {
+		sp_system_matrixs.add(element_dof_v[i], element_dof_v[j]);
+		sp_system_matrixs.add(element_dof_v[i], element_dof_v[j] + n_v);
+		sp_system_matrixs.add(element_dof_v[i] + n_v, element_dof_v[j] + n_v);
+		sp_system_matrixs.add(element_dof_v[i] + n_v, element_dof_v[j]);
+		// * Wxy and Wyx is non-zero. // 
+	    }
+	    for (int j = 0; j < n_dof_P1; ++j)
+	    {
+		sp_system_matrixs.add(element_dof_v[i], element_dof_p[j] + 2 * n_v);
+		sp_system_matrixs.add(element_dof_v[i] + n_v, element_dof_p[j] + 2 * n_v);
+	    }
+	}
+	for (int i = 0; i < n_dof_P1; ++i)
+	    for (int j = 0; j < n_dof_P2; ++j)
+	    {
+		sp_system_matrixs.add(element_dof_p[i] + 2 * n_v, element_dof_v[j]);
+		sp_system_matrixs.add(element_dof_p[i] + 2 * n_v, element_dof_v[j] + n_v);
+	    }
+    }
+
+    sp_system_matrixs.compress();
+    SparseMatrix<double> system_matrixs(sp_system_matrixs);
+    system_matrixs.reinit(sp_system_matrixs);
+
+    //the sp matrix has been created
+
+    //now we need to get the equation Adx=db
+    //as A and db is changed with u
+    //so we need a circle here
+
+    int step = 0;
+    double error = 0.01;
+    double res = 1;
+    double h = 0.1;
+    // how to compare the res? 
+    // begin circle
+    while (res > error)
+    {
+
+
+    system_matrixs.reinit(sp_system_matrixs);
+	
+    the_element = fem_space_v.beginElement();
+    for (; the_element != end_element; ++the_element) 
+    {
+	double volume = the_element->templateElement().volume();
+	const QuadratureInfo<DIM>& quad_info = the_element->findQuadratureInfo(4);
+	std::vector<double> jacobian = the_element->local_to_global_jacobian(quad_info.quadraturePoint());
+	int n_quadrature_point = quad_info.n_quadraturePoint();
+	std::vector<AFEPack::Point<DIM> > q_point = the_element->local_to_global(quad_info.quadraturePoint());
+	std::vector<std::vector<std::vector<double> > > basis_gradient_v = the_element->basis_function_gradient(q_point);
+	// +
+	std::vector<std::vector<double> > basis_function_value_v = the_element->basis_function_value(q_point);
+	
+	const std::vector<int>& element_dof_v = the_element->dof();
+	Element<double, DIM>& element_p = fem_space_p.element(the_element->index());
+	const std::vector<int>& element_dof_p = element_p.dof();
+	std::vector<std::vector<double> > basis_function_value_p = element_p.basis_function_value(q_point);
+	for (int l = 0; l < n_quadrature_point; ++l)
+	{
+	    double Jxw = quad_info.weight(l) * jacobian[l] * volume;
+	    for (int i = 0; i < n_dof_P2; ++i)
+	    {
+		for (int j = 0; j < n_dof_P2; ++j)
+		{
+		    double cont = Jxw * innerProduct(basis_gradient_v[i][l], basis_gradient_v[j][l]);
+		    system_matrixs.add(element_dof_v[i], element_dof_v[j], cont);
+		    system_matrixs.add(element_dof_v[i] + n_v, element_dof_v[j] + n_v, cont);
+
+		    //we add N
+		    double temp =  vx.value(q_point, *the_element)[l] * Jxw * basis_gradient_v[j][l][0] * basis_function_value_v[i][l];
+		    system_matrixs.add(element_dof_v[i], element_dof_v[j], temp);
+		    temp = vy.value(q_point, *the_element)[l] * Jxw * basis_gradient_v[j][l][1] * basis_function_value_v[i][l];
+		    system_matrixs.add(element_dof_v[i] + n_v, element_dof_v[j] + n_v, temp);
+
+                    //then we add W
+		    temp = Jxw * basis_function_value_v[i][l] * basis_function_value_v[j][l];
+		    std::vector<std::vector<double> > vx_gradient = vx.gradient(q_point, *the_element);
+         	    std::vector<std::vector<double> > vy_gradient = vy.gradient(q_point, *the_element);
+		    system_matrixs.add(element_dof_v[i], element_dof_v[j], vx_gradient[l][0] * temp);
+		    system_matrixs.add(element_dof_v[i], element_dof_v[j] + n_v, vx_gradient[l][1] * temp);
+		    system_matrixs.add(element_dof_v[i] + n_v, element_dof_v[j], vy_gradient[l][0] * temp);
+		    system_matrixs.add(element_dof_v[i] + n_v, element_dof_v[j] + n_v, vy_gradient[l][1] * temp);
+                    		    
+		}
+		for (int j = 0; j < n_dof_P1; ++j)
+		{
+		    double cont = Jxw * basis_function_value_p[j][l] * basis_gradient_v[i][l][0];
+		    system_matrixs.add(element_dof_v[i], element_dof_p[j] + 2 * n_v, -cont);
+		    cont = Jxw * basis_function_value_p[j][l] * basis_gradient_v[i][l][1];
+		    system_matrixs.add(element_dof_v[i] + n_v, element_dof_p[j] + 2 * n_v, -cont);
+		}
+
+	    }
+	    for (int i = 0; i < n_dof_P1; ++i)
+		for (int j = 0; j < n_dof_P2; ++j)
+		{
+		    double cont = Jxw * basis_function_value_p[i][l] * basis_gradient_v[j][l][0];
+		    system_matrixs.add(element_dof_p[i] + 2 * n_v, element_dof_v[j], -cont);
+		    cont = Jxw * basis_function_value_p[i][l] * basis_gradient_v[j][l][1];
+		    system_matrixs.add(element_dof_p[i] + 2 * n_v, element_dof_v[j] + n_v, -cont);
+		}
+	}
+    }
+
+    Vector<double> solutions(total_n_dof);
+    FEMFunction<double, DIM> vxs(fem_space_v);
+    FEMFunction<double, DIM> vys(fem_space_v);
+    FEMFunction<double, DIM> ps(fem_space_p);
+    Vector<double> rhss(total_n_dof);
+    Vector<double> rhs_vxs(n_v);
+    Vector<double> rhs_vys(n_v);
+    Vector<double> rhs_ps(n_p);
+
+    Operator::L2Discretize(&zfun, fem_space_v, rhs_vxs, 1);
+    Operator::L2Discretize(&zfun, fem_space_v, rhs_vys, 1);
+    Operator::L2Discretize(&zfun, fem_space_p, rhs_ps, 1);
+
+    //the J(A)dx = A(u_n)
+    // here we get A(u_n) and deal the boundary 
+    system_matrixs.vmult(rhss, solution);
+    for (int i = 0; i < n_v; i++)
+    {
+    	FEMSpace<double, DIM>::dof_info_t dof = fem_space_v.dofInfo(i);
+    	if (dof.boundary_mark == 1)
+    	{
+    	    SparseMatrix<double>::iterator row_iterator = system_matrixs.begin(i);
+    	    SparseMatrix<double>::iterator row_end = system_matrixs.end(i);
+    	    double diag = row_iterator->value();
+    	    double bnd_value = zfun(dof.interp_point);
+            rhss(i) = diag * bnd_value;
+    	    for (++row_iterator; row_iterator != row_end; ++row_iterator)
+            {
+            	row_iterator->value() = 0.0;
+    		int k = row_iterator->column();
+                SparseMatrix<double>::iterator col_iterator = system_matrixs.begin(k);   
+                SparseMatrix<double>::iterator col_end = system_matrixs.end(k);   
+    	    	for (++col_iterator; col_iterator != col_end; ++col_iterator)
+    			if (col_iterator->column() == i)
+    			    break;
+    		if (col_iterator == col_end)
+    		{
+    			std::cerr << "Error!" << std::endl;
+    			exit(-1);
+    		}
+    		rhss(k) -= col_iterator->value() * bnd_value; 
+    		col_iterator->value() = 0.0;	
+            }
+    	    row_iterator = system_matrixs.begin(i + n_v);
+    	    row_end = system_matrixs.end(i + n_v);
+    	    diag = row_iterator->value();
+    	    bnd_value = zfun(dof.interp_point); 
+            rhss(i + n_v) = diag * bnd_value;
+    	    for (++row_iterator; row_iterator != row_end; ++row_iterator)
+            {
+            	row_iterator->value() = 0.0;
+    	    	int k = row_iterator->column();
+                SparseMatrix<double>::iterator col_iterator = system_matrixs.begin(k);   
+                SparseMatrix<double>::iterator col_end = system_matrixs.end(k);   
+    	    	for (++col_iterator; col_iterator != col_end; ++col_iterator)
+		{
+    	    		if (col_iterator->column() == i + n_v)
+    	    		    break;
+		}
+    	    	if (col_iterator == col_end)
+    	    	{
+    	    		std::cerr << "Error!" << std::endl;
+    	    		exit(-1);
+    	    	}
+    	    	rhs(k) -= col_iterator->value() * bnd_value; 
+    	    	col_iterator->value() = 0.0;	
+            }  
+    	}
+    	if (dof.boundary_mark == 2)
+    	{
+    	    SparseMatrix<double>::iterator row_iterator = system_matrixs.begin(i);
+    	    SparseMatrix<double>::iterator row_end = system_matrixs.end(i);
+    	    double diag = row_iterator->value();
+    	    double bnd_value = zfun(dof.interp_point);
+            rhss(i) = diag * bnd_value;
+    	    for (++row_iterator; row_iterator != row_end; ++row_iterator)
+            {
+            	row_iterator->value() = 0.0;
+    		int k = row_iterator->column();
+                SparseMatrix<double>::iterator col_iterator = system_matrixs.begin(k);   
+                SparseMatrix<double>::iterator col_end = system_matrixs.end(k);   
+    	    	for (++col_iterator; col_iterator != col_end; ++col_iterator)
+    			if (col_iterator->column() == i)
+    			    break;
+    		if (col_iterator == col_end)
+    		{
+    			std::cerr << "Error!" << std::endl;
+    			exit(-1);
+    		}
+    		rhss(k) -= col_iterator->value() * bnd_value; 
+    		col_iterator->value() = 0.0;	
+            }  
+    	    row_iterator = system_matrixs.begin(i + n_v);
+    	    row_end = system_matrixs.end(i + n_v);
+    	    diag = row_iterator->value();
+    	    bnd_value = zfun(dof.interp_point); 
+            rhss(i + n_v) = diag * bnd_value;
+    	    for (++row_iterator; row_iterator != row_end; ++row_iterator)
+            {
+            	row_iterator->value() = 0.0;
+    		int k = row_iterator->column();
+                SparseMatrix<double>::iterator col_iterator = system_matrixs.begin(k);   
+                SparseMatrix<double>::iterator col_end = system_matrixs.end(k);   
+    	    	for (++col_iterator; col_iterator != col_end; ++col_iterator)
+    			if (col_iterator->column() == i + n_v)
+    			    break;
+    		if (col_iterator == col_end)
+    		{
+    			std::cerr << "Error!" << std::endl;
+    			exit(-1);
+    		}
+    		rhss(k) -= col_iterator->value() * bnd_value; 
+    		col_iterator->value() = 0.0;	
+            }  
+    	}	
+    }
+
+
+    
+    //solve the Adx = A(u_n)
+    SolverGMRES<Vector<double> > gmres(solver_control);
+    gmres.solve (system_matrixs, solutions, rhss, PreconditionIdentity());	
+    for (int i = 0; i < n_v; i++)
+	vx(i) += solutions(i);
+    for (int i = n_v; i < 2 * n_v; i++)
+	vy(i - n_v) += solutions(i);
+    for (int i = 2 * n_v; i < total_n_dof; i++)
+	p(i - 2 * n_v) += solutions(i);
+
+    for (int i = 0; i < n_v; i++)
+	solution(i) = vx(i);
+    for (int i = n_v; i < 2 * n_v; i++)
+	solution(i) = vy(i - n_v);
+    for (int i = 2 * n_v; i < total_n_dof; i++)
+	solution(i) = p(i - 2 * n_v);
+
+    res = solutions.l2_norm();
+    step++;
+    }
+    // end circle 
+    std::cout << step << std::endl;
     return 0;
 };
 
 // 真解
 double ux(const double * p)
 {
-    return 20 * p[0] * p[1] * p[1] * p[1];
+    return 1.0;
 };
 
 double uy(const double * p)
 {
-    double x2 = p[0] * p[0];
-    double y2 = p[1] * p[1];
-    return 5 * x2 * x2  - 5 * y2 * y2;
+    return 0;
 };
 
 double up(const double * p)
