@@ -852,7 +852,8 @@ int main(int argc, char * argv[])
 		    system_matrixs.add(element_dof_v[i] + n_v, element_dof_v[j] + n_v, cont);
 
 		    //we add N
-		    double temp =  vx.value(q_point, *the_element)[l] * Jxw * basis_gradient_v[j][l][0] * basis_function_value_v[i][l];
+		    double temp;
+                    temp =  vx.value(q_point, *the_element)[l] * Jxw * basis_gradient_v[j][l][0] * basis_function_value_v[i][l];
 		    system_matrixs.add(element_dof_v[i], element_dof_v[j], temp);
 		    temp = vy.value(q_point, *the_element)[l] * Jxw * basis_gradient_v[j][l][1] * basis_function_value_v[i][l];
 		    system_matrixs.add(element_dof_v[i] + n_v, element_dof_v[j] + n_v, temp);
@@ -903,6 +904,10 @@ int main(int argc, char * argv[])
     //the J(A)dx = A(u_n)
     // here we get A(u_n) and deal the boundary 
     system_matrixs.vmult(rhss, solution);
+    for (int i = 0; i < 2 * n_v + n_p; i++)
+    {
+	rhss(i) = -rhss(i);
+    }
     for (int i = 0; i < n_v; i++)
     {
     	FEMSpace<double, DIM>::dof_info_t dof = fem_space_v.dofInfo(i);
