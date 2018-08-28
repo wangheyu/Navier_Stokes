@@ -20,7 +20,7 @@
 \maketitle
 
 \begin{abstract}
-The project discusses how to solve the Navier-Stokes equation. It begins with the Stokes equation, using Newton iteration to deal the nonlinear term in Navier-Stokes. With the viscosity growing, we observe the equation's developing by time and it can converge a stable solution when $\Delta$t is small enough. Finally we successfully solve the Navier-Stokes Equation while the viscosity is more than the 0.0005(Re<2000).
+This project discusses how to solve Navier-Stokes equations by mixed element methods. It begins with the Stokes equations, and also its AMG block precondition skills; then a Newton iteration is desined to deal the nonlinear discretized system of Navier-Stokes equations. For large viscosity parameter ($\geq 0.02$, or RE$\leq 50$), the solutions of steady Navier-Stokes equations can be solved directly by using an ILU preconditioner on the linear solver of the Jacobi system, while for the large viscosity ($\geq 0.0005$, or RE$\leq 2000$), a time dependent Navier-Stokes solver is implemented to approximate the steady solution by making the computing time sufficient large. A series bentchmark simulations are fulfiled to check the correctness of the algorithms and codes. 
 \end{abstract}
 
 
@@ -28,7 +28,7 @@ The project discusses how to solve the Navier-Stokes equation. It begins with th
 
 \subsection{Weak Form}
 
-Firstly we have the equation that
+The Stokes equations we discussed take the form as
 \begin{equation}
 \begin{array}{rcl}
 -\nabla^2 \vec{u} + \nabla p &=& \vec{0} \\
