@@ -117,9 +117,10 @@ A &=& [a_{ij}], \quad a_{ij} = \int_{\Omega} \nabla \vec{\phi}_i :
 \end{equation}
 respectively.
 
+
 \subsection{Matrix Form}
 
-Specially, we set the {$\vec{\phi}_i$} a standard basis and $n_u = 2n$, then
+Specially, we set the \{$\vec{\phi}_i$\} a standard basis functions that
 \begin{equation}
 \{\vec{\phi_1},\vec{\phi_2},\cdots,\vec{\phi_{2n}} \}:=\{(\phi_1,0)^T,\cdots,(\phi_n,0)^T,(0,\phi_1)^T,\cdots,(0,\phi_n)^T\}
 \label{eq::basisfunction}
@@ -146,7 +147,7 @@ g
 \right]
 \label{Stokes}
 \end{equation}
-where the $n\times n$ matrix $A$ is the scalar Laplacian matrix, and the $n_p\times n$ matrices $B_x$ and $B_y$ represent weak derivatives in the $x$ and $y$ direction. 	
+where the $n\times n$ matrix $A$ is the scalar Laplacian matrix, and the $n_p\times n$ matrices $B_x$ and $B_y$ represent weak derivatives in the $x$ and $y$ direction that 	
 \begin{equation}
 \begin{array}{rcl}
 A &=& [a_{ij}], \quad a_{ij} = \int_{\Omega} \nabla \phi_i : \nabla \phi_j \\
@@ -155,9 +156,9 @@ B_y &=& [b_{y,kj}], \quad b_{y,kj} = -\int_{\Omega} \psi_k \frac{\partial \phi_j
 \end{array}
 \label{Stokes-mtvalue}
 \end{equation}
-While the basis functions given by mixed finite element methods are piecewise linear, the A is symmetric positive definite and highly sparse, resulting in the linear system symmetric positive defined and highly sparse. So we have lots of methods to solve the linear system (\ref{mt::Stokes}) there. \\
+ \\
 \subsection{Precondition}
-Now that we have a symmetric positive definite matrix, some proper precondition is needed to improve computing efficiency. There is a block AMG preconditioner for Stokes matrixes.
+The basis functions given by mixed finite element methods are piecewise linear. We have the matrix system symmetric positive definite and highly sparse. Thus proper precondition is needed to improve computing efficiency. There is a AMG block preconditioner for the Stokes matrix.
 \begin{equation}
 M = \left[ \begin{array}{ccc}
 A & 0 & 0 \\
@@ -183,7 +184,7 @@ u &=& 0,\quad others
 \right.
 \label{bd::value1}
 \end{equation}
-The computing environment is personal computer. The mesh relies on easymesh and the finite element methods rely on AFEPack and dealII 8.1.0. We set $h=0.05$, get the result that
+The mesh relies on easymesh and the finite element methods rely on AFEPack and dealII 8.1.0. We set $h=0.05$ to see a brief solution of Stokes equations.
 
 \begin{figure}[h]
 \centering
@@ -192,12 +193,12 @@ The computing environment is personal computer. The mesh relies on easymesh and 
 \label{im::Stokes-Solution}
 \end{figure}
 
-From the Figure \ref{im::Stokes-Solution}, we can see that the Stokes system is symmetric and stable. There are two counter-rotating recirculations( called Moffatt eddies). The figure gives us a brief understanding of fluid system.
+From the Figure \ref{im::Stokes-Solution}, the Stokes system is symmetric and stable. There are two counter-rotating recirculations(called Moffatt eddies). The figure gives us a brief understanding of fluid system.
 
 
 \section{Navier Stokes}
 \subsection{Weak Form}
-After solved the Stokes equations, let's consider the Navier-Stokes equations:
+Let's consider the Navier-Stokes equations now:
 \begin{equation}
 \begin{array}{rcl}
 -\nu \nabla^2 \vec{u} + \vec{u}\cdot \nabla \vec{u} + \nabla p &=& \vec{F} \\
@@ -205,7 +206,7 @@ After solved the Stokes equations, let's consider the Navier-Stokes equations:
 \label{eq::Navier-Stokes-problem}
 \end{array}
 \end{equation}
-As we did before, we also have a standard weak formulation that
+As we did before, a standard weak form is given that
 \begin{equation}
 \begin{array}{rcl}
 -\nu\int_\Omega \nabla^2 \vec{u} \cdot \vec{v}+\int_{\Omega}\vec{u}\cdot\nabla\vec{u}\cdot\vec{v} + \nabla p &=& \int_{\Omega}\vec{F}\cdot \vec{v},\quad for \ all \ \vec{v} \in H^1_{E_0} \\
@@ -213,10 +214,9 @@ As we did before, we also have a standard weak formulation that
 \label{eq::Navier-Stokes-weakform}
 \end{array}
 \end{equation}
-Now we can't solve the problem directly because of the nonlinear item $\vec{u}\cdot \nabla \vec{u}$. So newton iteration is used:\\
-\indent When we calculate $A(x)=b$, it means we calculate $A(x)-b=0$. The newton iteration is that $x_{n+1}=x_{n} - (A(x_n)-b)\cdot J(A(x_{n}))$. $J(A)$ means $A$'s Jacobi matrix. So we have
+The problem can't be solved directly because of the nonlinear item $\vec{u}\cdot \nabla \vec{u}$. We consider a newton iteration that $x_{n+1}=x_{n} - (A(x_n)-b)\cdot J(A(x_{n}))^{-1}$. $J(A)$ means $A$'s Jacobi matrix. The iteration form is that
 $$ J(A(x_n))\Delta x = b - A(x_n)$$
-\indent Having same basis functions as (\ref{eq::basisfunction}), we get a similar matrix system that
+\indent Having same basis functions as (\ref{eq::basisfunction}), a similar matrix system shows that
 \begin{equation}
 \left[ \begin{array}{ccc}
 A + N +W_{xx} & W_{xy} & B_x^T \\
@@ -238,7 +238,7 @@ g
 \right]
 \label{Navier-Stokes}
 \end{equation}
-Where $A$ and $B$ are same and the matrix $N$ is the $n\times n$ scalar convection matrix
+Where $A$ and $B$ are same as before and the matrix $N$ is the $n\times n$ scalar convection matrix
 \begin{equation}
 N = [n_{ij}], \quad n_{ij} = \int_{\Omega} (\vec{u}_h\cdot \nabla\phi_j)\phi_i
 \label{mt::N}
@@ -248,7 +248,7 @@ The $n\times n$ matrices $W_{xx}, W_{xy}, W_{yx}, W_{yy}$ represent weak derivat
 W_{xy} = [w_{xy,ij}],\quad w_{xy,ij} = \int_{\Omega} \frac{\partial u_x}{\partial y}\phi_u \phi_j
 \label{mt::W}
 \end{equation}
-In the iteration, the right item is the residual. So we get the $f$ and $g$ value that
+In the iteration, the right item is the residual
 \begin{equation}
 f = [f_i],\quad f_i=\int_{\Omega}(\vec{F}\cdot\vec{\phi}_i-\vec{u}_h\cdot\nabla\vec{u}_h\cdot\vec{\phi}_i-\nu\nabla\vec{u}_h:\nabla\vec{\phi}_i+p_h(\nabla\cdot\vec{\phi}_i))
 \end{equation}
@@ -263,8 +263,6 @@ f_y &=& [f_{yi}],\quad f_{yi}=\int_{\Omega}(F_y\cdot\phi_i-\vec{u}_h\cdot\nabla 
 \label{mt::f}
 \end{array}
 \end{equation}
-With a boundary value we can calculate specific problems now.
-\newpage
 \subsection{Result}
 First we consider one problem which has an accurate solution that
 \begin{equation}
@@ -272,7 +270,7 @@ u_x = 1-y^2;\quad u_y = 0;\quad p=-2\nu x;
 \label{pr::accurate}
 \end{equation}
 
-This is called Poiseuille channel flow. The square domain $\Omega = (-1,1)^2$. We set mesh $h=0.2,\ 0.1,\ 0.05,\ 0.02$ and $\nu=1$, then plot the image about numerical error $||u_h-u_0||_2$ and $h$.
+It's called Poiseuille channel flow. The square domain $\Omega = (-1,1)^2$. We set mesh $h=0.2,\ 0.1,\ 0.05,\ 0.02$ and $\nu=1$, then plot the image about numerical error $||u_h-u_0||_2$ and $h$.
 \begin{figure}[h]
 \centering
 \includegraphics[scale = 0.8]{images/convergence.png}
@@ -280,10 +278,12 @@ This is called Poiseuille channel flow. The square domain $\Omega = (-1,1)^2$. W
 \label{im::log(h)-res}
 \end{figure}
 \\
-The slope of the figure (\ref{im::log(h)-res}) is 1.9043. We can see our method converges with a about $O(h^2)$ order. \\
-\\
+The slope of the figure (\ref{im::log(h)-res}) is 1.9043. We can see the method converges with a about $O(h^2)$ order. \\
 
-\indent Then under same boundary value as (\ref{bd::value1}), let's see what difference will appear between Navier-Stokes fluid and Stokes fluid when $\nu=1,\ 0.1,\ 0.01,\ h=0.05$. (Without precondition we can hardly do matrix calculation, and matrix system is not symmetric again. So we use ilu precondition here provided by dealII.)
+
+
+
+\indent Then under same boundary value as (\ref{bd::value1}), let's see what difference will appear between Navier-Stokes fluid and Stokes fluid when $\nu=1,\ 0.1,\ 0.01,\ h=0.05$. (We use ilu precondition here provided by dealII)
 \begin{figure}[h]
 \centering
 \includegraphics[scale = 0.2]{images/a.png}
@@ -303,9 +303,11 @@ We consider the equations that
 \label{eq::Timedepending-problem}
 \end{array}
 \end{equation}
-The difference is that we add a time-control item to Navier-Stokes equation. When this equations come to converge, it has a same convergence as Navier-Stokes. These two equations with same boundary values will converge to a same steady state.\\
+We add a time-control item to Navier-Stokes equations. When it converges, the solution is the same as Navier-Stokes under same boundary value.
+
+
 We use implicit format that $\frac{\partial u}{\partial t} = \frac{u^{n+1}-u^{n}}{\Delta t}$ in $x$ and $y$ directions.
-So the iteration becomes that
+The iteration becomes that
 \begin{equation}
 \left[ \begin{array}{ccc}
 A + N +W_{xx} + T_x & W_{xy} & B_x^T \\
@@ -329,24 +331,28 @@ g
 \end{equation}
 The $T$ is the $n\times n$ time developing matrix
 \begin{equation}
-T = [t_{ij}],\quad t_{ij}=\frac{1}{\Delta t}\int_{\Omega}\vec{\phi}_i\vec{\phi}_j
+T = [t_{ij}],\quad t_{ij}=\frac{1}{\Delta t}\int_{\Omega}\vec{\phi}_i\cdot\vec{\phi}_j
 \end{equation}
 and the vector $t$ is the former velocity value
 \begin{equation}
-t = [t_{k}],\quad t_{k}=\frac{1}{\Delta t}\int_{\Omega}\vec{u}\vec{\phi}_i
+t = [t_{k}],\quad t_{k}=\frac{1}{\Delta t}\int_{\Omega}\vec{u}_h\cdot\vec{\phi}_i
 \end{equation}
+\\
 
-If the time is small enough, the solution must converge to the steady solution. Now let's try to solve the Navier-Stokes equations while the $\nu=0.00005(Re=2000)$. The solution is that
+
+Now let's try to solve the Navier-Stokes equations while $\nu=0.00005(Re=2000)$. The solution is that
 \begin{figure}[h]
 \centering
 \includegraphics[scale = 0.5]{images/e.png}
 \caption{the Navier-Stokes fluid while $\nu=0.00005$}
 \label{im::d}
 \end{figure}
-from the figure (\ref{im::d}), we can find that new eddy comes to appear and the fluid becomes unstable. When the Re($\frac{1}{\nu}$) grows again, the model can't explain the phenomenon any more. It needs to introduce more theories.
+
+
+In the figure (\ref{im::d}), new eddy comes to appear and the fluid becomes unstable. When the Re($\frac{1}{\nu}$) grows again, the model can't explain the phenomenon any more. It needs to introduce more theories.
 \section{Future Work}
 \subsection{3D}
-Actually we just calculate the problem in the plane. For practical calculating, we need to extend it to 3D space. It doesn't exist essential difficulty. We just change the matrix (\ref{Navier-Stokes}) that
+Actually we just calculate the problem in the plane. For practical calculating, we should extend it to 3D space. It doesn't exist essential difficulty. We just change the matrix (\ref{Navier-Stokes}) that
 \begin{equation}
 \left[ \begin{array}{cccc}
 A + N +W_{xx} & W_{xy} & W_{xz} & B_x^T \\
@@ -371,17 +377,17 @@ g
 \right]
 \label{3D-Navier-Stokes}
 \end{equation}
-The difficulty is that we use easymesh to build the 2D mesh. Now we need to find new mesh-building tools to get the mesh.
+The difficulty is we use easymesh to build the 2D mesh. New 3D mesh-building tools is required now.
 \subsection{Precondition}
-When the matrix size grows, better precondition is needed. Considering the problem (\ref{eq::Timedepending-problem}), we use semi-implicit scheme that
+With the matrix size growing, better precondition is needed. Otherwise we can hardly solve the linear equations. Considering the time-depending Navier-Stokes equations (\ref{eq::Timedepending-problem}), we use semi-implicit scheme that
 \begin{equation}
 \begin{array}{rcl}
-\frac{\vec{u^{n+1}}-\vec{u^n}}{\Delta t} - \nu \nabla^2 \vec{u^{n+1}} + \vec{u^{n}}\cdot \nabla \vec{u^n} + \nabla p^{n+1} &=& \vec{F} \\
-\nabla \cdot \vec{u^{n+1}} &=& \vec{0}
+\frac{\vec{u}^{n+1}-\vec{u}^n}{\Delta t} - \nu \nabla^2 \vec{u}^{n+1} + \vec{u}^{n}\cdot \nabla \vec{u}^n + \nabla p^{n+1} &=& \vec{F} \\
+\nabla \cdot \vec{u}^{n+1} &=& \vec{0}
 \label{eq::implicit and explicit}
 \end{array}
 \end{equation}
-Thus we change the equations to a time-developinig Stokes equations. Now we can use proper precondition like block AMG precondition given before to make the calculating easier.
+Thus we change the equations to a time-developinig Stokes equations. Now we can use proper precondition like AMG block precondition given before to make the calculating faster.
 
 \bibliographystyle{alpha}
 \bibliography{sample}
