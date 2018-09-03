@@ -24,14 +24,13 @@
   element methods. It begins with the Stokes equations solver, and
   also its AMG block precondition skills; then a Newton iteration is
   designed to deal the nonlinear discretized system of Navier-Stokes
-  equations.  For large viscosity parameter ($\geq 0.02$, or RE$\leq
+  equations.  For large viscosity parameters ($\geq 0.02$, or RE$\leq
   50$), the solutions of steady Navier-Stokes equations can be solved
-  directly by using an ILU preconditioner, while for the large
-  viscosity ($\geq 0.0005$, or RE$\leq 2000$) cases, a time dependent
-  Navier-Stokes solver is implemented to approximate the steady
-  solution by making the computing time sufficient large. A series
-  bentchmark simulations are fulfiled to check the correctness of the
-  algorithms and codes.
+  directly by using an ILU preconditioner, while for the small ($\geq
+  0.0005$, or RE$\leq 2000$) cases, a time dependent Navier-Stokes
+  solver is implemented to approximate the steady solution by making
+  the computing time sufficient large. A series bentchmark simulations
+  are fulfiled to check the correctness of the algorithms and codes.
 \end{abstract}
 
 
@@ -70,9 +69,9 @@ It can be reformed by applying Green Theorem as
 \begin{equation}
 \begin{array}{rcl}
 \int_\Omega \nabla \vec{u} : \nabla \vec{v} - \int_\Omega p\nabla
-\cdot \vec{v} &=& \int_{\partial \Omega_N}\vec{s}\cdot \vec{v} \quad
-for \ all \ \vec{v} \in H^1_{E_0}\\ \int_\Omega q\nabla \cdot \vec{u}
-&=& 0 \quad for \ all \ q\in L_2(\Omega)
+\cdot \vec{v} &=& \int_{\partial \Omega_N}\vec{s}\cdot \vec{v}, 
+\forall \vec{v} \in H^1_{E_0}\\ \int_\Omega q\nabla \cdot \vec{u}
+&=& 0, \forall q \in L_2(\Omega)
 \label{eq::Stokes}
 \end{array}
 \end{equation}
@@ -80,7 +79,7 @@ for \ all \ \vec{v} \in H^1_{E_0}\\ \int_\Omega q\nabla \cdot \vec{u}
 Assume that the basis functions of the velocity space are
 {$\vec{\phi}_j$} such that
 \begin{equation}
-\vec{u}_h = \sum^{n_u}_{j=1}u_j\vec{\phi}_j + \sum^{n_u + n_\partial}_{j=n_u+1}u_j\vec{\phi}_j,
+\vec{u}_h = \sum^{n_u}_{j=1}u_j\vec{\phi}_j,
 \label{eq::Stokes-u}
 \end{equation}
 while the basis functions of the pressure space are $\psi_k$ such that
@@ -104,10 +103,10 @@ p
 f\\
 g
 \end{array}
-\right]
+\right],
 \label{mt::Stokes}
 \end{equation}
-Here the matrix $A$ and $B$ are given by
+where the matrix $A$ and $B$ are given by
 \begin{equation}
 \begin{array}{rcl}
 A &=& [a_{ij}], \quad a_{ij} = \int_{\Omega} \nabla \vec{\phi}_i :
@@ -147,7 +146,7 @@ g
 \right]
 \label{Stokes}
 \end{equation}
-where the $n\times n$ matrix $A$ is the scalar Laplacian matrix, and the $n_p\times n$ matrices $B_x$ and $B_y$ represent weak derivatives in the $x$ and $y$ direction that 	
+where the $n_u \times n_u $ matrix $A$ is the scalar Laplacian matrix, and the $n_p\times n_u$ matrices $B_x$ and $B_y$ represent weak derivatives in the $x$ and $y$ direction that 	
 \begin{equation}
 \begin{array}{rcl}
 A &=& [a_{ij}], \quad a_{ij} = \int_{\Omega} \nabla \phi_i : \nabla \phi_j \\
@@ -158,43 +157,57 @@ B_y &=& [b_{y,kj}], \quad b_{y,kj} = -\int_{\Omega} \psi_k \frac{\partial \phi_j
 \end{equation}
  \\
 \subsection{Precondition}
-The basis functions given by mixed finite element methods are piecewise linear. We have the matrix system symmetric positive definite and highly sparse. Thus proper precondition is needed to improve computing efficiency. There is a AMG block preconditioner for the Stokes matrix.
+Obviously the matrix system is symmetric positive definite and highly
+sparse. Thus proper precondition is needed to improve computing
+efficiency. There is a AMG block preconditioner for the Stokes
+matrix. The precondition matrix is
 \begin{equation}
 M = \left[ \begin{array}{ccc}
 A & 0 & 0 \\
 0 & A & 0 \\
 0 & 0 & Q
 \end{array}
-\right]
+\right],
 \end{equation}
-where $Q$ is a $n_p\times n_p$ pressure quality matrix.
+where $Q$ is a $n_p\times n_p$ the mass matrix in the pressure space, which
 \begin{equation}
-Q = [q_{ij}], \quad q_{ij} = \int_{\Omega} \psi_i\psi_j
+Q = [q_{ij}], \quad q_{ij} = \int_{\Omega} \psi_i\psi_j.
 \label{pr::Q}
 \end{equation}
-Specially, as we just need a preconditioner and Q is a diagonally dominant matrix, we can set Q a diagonal matrix. It makes the matrix easier but has a similar effect.
-\subsection{Result}
-We consider the question given that: $\Omega = [0,1]\times[0,1]$, the boundary value
+
+In practise, we may just take the diagonal elements of $Q$ since it is
+a diagonally dominant matrix. And for the stiff matrix A can be solved
+by a standard AMG solver.
+
+\subsection{Numerical Results}
+For the first simulation to test our Stokes solver, the dimension of
+the computational area is $\Omega = [0,1]\times[0,1]$, and the
+boundary values take as following:
 \begin{equation}
 \left\lbrace
-\begin{array}{rcl}
-u_x &=& 1,\quad on \ \{(x,y): x \in [0,1] \ and \ y = 1\}\\
-u &=& 0,\quad others
+\begin{array}{ll}
+u_x = 1, u_y = 0, & y = 1 \\
+u_x = u_y = 0, & \mbox{others}.
 \end{array}
 \right.
 \label{bd::value1}
 \end{equation}
-The mesh relies on easymesh and the finite element methods rely on AFEPack and dealII 8.1.0. We set $h=0.05$ to see a brief solution of Stokes equations.
+
+And the dimension of the mesh grids is about $20 \times 20$, or
+$h=0.05$. All the simulations in this report are implemented based on
+numerical software lib AFEPack and dealII 8.1.0. 
 
 \begin{figure}[h]
 \centering
 \includegraphics[scale = 0.4]{images/Stokes.png}
-\caption{Stokes Solution}
+\caption{Stokes Solution, the stream lines of the velocity field, the
+  size of the square is $[0, 1] \times [0, 1]$, with mesh dimension $h = 0.05$.}
 \label{im::Stokes-Solution}
 \end{figure}
 
-From the Figure \ref{im::Stokes-Solution}, the Stokes system is symmetric and stable. There are two counter-rotating recirculations(called Moffatt eddies). The figure gives us a brief understanding of fluid system.
-
+The Figure \ref{im::Stokes-Solution} shows the steamlines of the
+velocity, and the locations of the two counter-rotating recirculations
+(called Moffatt eddies) agreed with the ture solutions well.  
 
 \section{Navier Stokes}
 \subsection{Weak Form}
