@@ -13,7 +13,7 @@
 \usepackage{graphicx}
 \usepackage[colorinlistoftodos]{todonotes}
 \usepackage[colorlinks=true, allcolors=blue]{hyperref}
-\title{Navier Stokes Equations}
+\title{Solving Imcompressible Flow by Mixed Finite Element Method}
 \author{Quanhui Zhu}
 
 \begin{document}
@@ -222,18 +222,34 @@ Consider the Navier-Stokes equations:
 As we did before, a standard weak form is given that
 \begin{equation}
 \begin{array}{rcl}
--\nu\int_\Omega \nabla^2 \vec{u} \cdot \vec{v}+\int_{\Omega}\vec{u}\cdot\nabla\vec{u}\cdot\vec{v} + \nabla p &=& \int_{\Omega}\vec{F}\cdot \vec{v},\quad \forall \vec{v} \in H^1_{E_0} \\
-\int_\Omega q\nabla \cdot \vec{u} &=&0,\quad \forall q \in L_2(\Omega)
+-\nu\int_\Omega \nabla^2 \vec{u} \cdot
+\vec{v} + \int_{\Omega} \vec{u} \cdot \nabla \vec{u} \cdot \vec{v} + \nabla p
+& = & \int_{\Omega} \vec{F} \cdot \vec{v}, \quad \forall \vec{v} \in
+H^1_{E_0}, \\ \int_\Omega q \nabla \cdot \vec{u} & = & 0, \quad \forall q
+\in L_2(\Omega).
 \label{eq::Navier-Stokes-weakform}
 \end{array}
 \end{equation}
-The problem can't be solved directly because of the nonlinear term $\vec{u}\cdot \nabla \vec{u}$. We consider a newton iteration that $x_{n+1}=x_{n} - (A(x_n)-b)\cdot J(A(x_{n}))^{-1}$. $J(A)$ means $A$'s Jacobi matrix. The iteration form comes that
-$$ J(A(x_n))\Delta x = b - A(x_n).$$
-\indent With the same basis functions as (\ref{eq::basisfunction}), a similar matrix system shows that
+% origin: The problem can't be solved directly...
+% the conclusion is incorrect, can not be solved linearly not means can not be solved.
+% and in the above formation, you still ommit the interpunctions.
+And a newton iteration
+$$
+x_{n+1} = x_{n} - (A(x_n)-b) \cdot J(A(x_{n}))^{-1}
+$$ is considered to solve this nonlinear equations. Here $J(A)$ means
+$A$'s Jacobi matrix. The iteration form comes that
+$$
+J(A(x_n))\Delta x = b - A(x_n).
+$$
+
+% why indent again?
+
+It leads to a matrix system similar as the Stokes one with the same
+basis functions (\ref{eq::basisfunction}), which is
 \begin{equation}
 \left[ \begin{array}{ccc}
-\nu A + N +W_{xx} & W_{xy} & B_x^T \\
-W_{yx} & \nu A +N +W{yy}& B_y^T \\
+\nu A + N + W_{xx} & W_{xy} & B_x^T \\
+W_{yx} & \nu A + N + W{yy} & B_y^T \\
 B_x & B_y & 0
 \end{array}
 \right]
@@ -242,70 +258,95 @@ B_x & B_y & 0
 \Delta u_y\\
 \Delta p
 \end{array}
-\right]=
+\right] =
 \left[\begin{array}{ccc}
 f_x\\
 f_y\\
 g
 \end{array}
-\right]
+\right],
 \label{Navier-Stokes}
 \end{equation}
-where the matrix $N$ is the $n_u\times n_u$ scalar convection matrix
+where the matrix $N$ is the $n_u \times n_u$ scalar convection matrix, which takes the form 
 \begin{equation}
-N = [n_{ij}], \quad n_{ij} = \int_{\Omega} (\vec{u}_h\cdot \nabla\phi_j)\phi_i .
+N = [n_{ij}], n_{ij} = \int_{\Omega} (\vec{u}_h\cdot \nabla\phi_j)\phi_i,
 \label{mt::N}
 \end{equation}
-The $n_u\times n_u$ matrices $W_{xx}, W_{xy}, W_{yx}, W_{yy}$ represent weak derivatives of the current velocity in the $x$ and $y$ directions
+and the $n_u\times n_u$ matrices $W_{xx}, W_{xy}, W_{yx}, W_{yy}$
+represent weak partial derivatives of the current velocity, which take the form
 \begin{equation}
-W_{xy} = [w_{xy,ij}],\quad w_{xy,ij} = \int_{\Omega} \frac{\partial u_x}{\partial y}\phi_u \phi_j.
+W_{xy} = [w_{xy,ij}], w_{xy,ij} = \int_{\Omega} \frac{\partial u_x}{\partial y}\phi_u \phi_j.
 \label{mt::W}
 \end{equation}
-In the iteration, the residual is
+In the iteration, the nonlinear residual is
 \begin{equation}
 \begin{array}{rcl}
-f &=& [f_i],\quad f_i = \int_{\Omega}(\vec{F}\cdot\vec{\phi}_i-\vec{u}_h\cdot\nabla\vec{u}_h\cdot\vec{\phi}_i-\nu\nabla\vec{u}_h:\nabla\vec{\phi}_i+p_h(\nabla\cdot\vec{\phi}_i)) \\
-g &=& [g_k],\quad g_k = \int_{\Omega}\psi_k(\nabla \cdot \vec{u}_h)
+f &=& [f_i], f_i = \int_{\Omega}(\vec{F} \cdot \vec{\phi}_i -
+\vec{u}_h \cdot \nabla \vec{u}_h \cdot \vec{\phi}_i - \nu \nabla
+\vec{u}_h : \nabla \vec{\phi}_i + p_h(\nabla \cdot \vec{\phi}_i)), \\ g
+& = & [g_k], g_k = \int_{\Omega} \psi_k(\nabla \cdot \vec{u}_h).
 \end{array}
 \end{equation}
-When we calculate $f$ in $x$ and $y$ directions, it changes that
+
+Especially, for $f$ in $x$ and $y$ directions, they are
 \begin{equation}
 \begin{array}{rcl}
-f_x &=& [f_{xi}],\quad f_{xi}=\int_{\Omega}(F_x\cdot\phi_i-\vec{u}_h\cdot\nabla u_x\cdot\phi_i-\nu\nabla u_x:\nabla\phi_i+p_h(\nabla\cdot\phi_i)) \\
-f_y &=& [f_{yi}],\quad f_{yi}=\int_{\Omega}(F_y\cdot\phi_i-\vec{u}_h\cdot\nabla u_y\cdot\phi_i-\nu\nabla u_y:\nabla\phi_i+p_h(\nabla\cdot\phi_i))
+f_x & = & [f_{xi}], f_{xi} = \int_{\Omega}(F_x \cdot \phi_i -
+\vec{u}_h \cdot \nabla u_x \cdot \phi_i - \nu \nabla u_x : \nabla
+\phi_i + p_h(\nabla \cdot \phi_i)), \\ f_y & = & [f_{yi}], f_{yi} =
+\int_{\Omega}(F_y \cdot \phi_i - \vec{u}_h \cdot \nabla u_y \cdot
+\phi_i - \nu \nabla u_y : \nabla \phi_i + p_h(\nabla \cdot \phi_i)).
 \label{mt::f}
 \end{array}
 \end{equation}
-Notice that the newton iteration has a similar system to Stokes equations. We choose the solution of Stokes equations that
-\begin{equation}
-\begin{array}{rcl}
--\nu\nabla^2 \vec{u} + \nabla p &=& \vec{0} \\
-\nabla \cdot \vec{u} &=& \vec{0}
-\label{eq::nuStokes-problem}
-\end{array}
-\end{equation}
-as initial value.
+% "Notice that the newton iteration has a similar system to Stokes
+% equations."  that is not the reason which we set the initial values.
+% basically, a nonlinear solver should not very sensitive to the
+% iniitial, so we can just set it without any explain, unless it is
+% really necessary. Such as, for multi-solutions cases.
+
+Here we use GMRES solver with an ILU preconditioner to solve the
+linear system (\ref{Navier-Stokes}) since the system is not
+symmetric. And we choose the solution of Stokes equations with the
+same viscosity as the initial values.
 
 \subsection{Numerical Result}
-First we consider the Poiseuille channel flow solution
+First we consider the bentch mark problem Poiseuille channel flow with the real solutions:
 \begin{equation}
-u_x = 1-y^2;\quad u_y = 0;\quad p=-2\nu x;
+u_x = 1-y^2;  u_y = 0; p=-2\nu x.
 \label{pr::accurate}
 \end{equation}
-which is an analytic solution of the Navier-Stokes equations, since the convention term $\vec{u}\cdot \nabla \vec{u}$ is identically zero. The square domain $\Omega = (-1,1)^2$. We set mesh dimension $h=0.2,\ 0.1,\ 0.05,\ 0.02$ and $\nu=1$ to observe how will the numerical error change.
+And the computing domain is $\Omega = (-1,1)^2$. We set mesh dimension
+$h=0.2,\ 0.1,\ 0.05,\ 0.02$ and $\nu=1$ to observe how will the
+numerical error change.
+
 \begin{figure}[h]
 \centering
 \includegraphics[scale = 0.8]{images/convergence.png}
-\caption{The relevance between log(h) and log(r) when $nu=1$. We set mesh dimension $h=0.2,\ 0.1, \ 0.05, \ 0.02$ and the numerical error $r=||u_h-u||_2$. log(h) and log(r) shows linear correlation and the slope is 1.9043.}
+\caption{The relevance between log(h) and log(r) when $nu=1$.  Mesh
+  dimensions are $h=0.2,\ 0.1, \ 0.05, \ 0.02$ and the numerical error
+  $r=||u_h-u||_2$. log(h) and log(r) shows linear correlation and the
+  slope is 1.9043.}
 \label{im::log(h)-res}
 \end{figure}
-\\
-From figure (\ref{im::log(h)-res}) we can see the method converges with a about $O(h^2)$ order. \\
 
+Figure (\ref{im::log(h)-res}) shows the relevance between log(h) and
+log(r) when $nu=1$, which the numerical error $r=||u_h-u||_2$. From
+the figure the linear correlation of log(h) and log(r) is found and
+the slope is 1.9043. That agree with the analytic result of the
+convergence order $O(h^2)$.
 
+And for the cavity flow cases, under same boundary value as
+(\ref{bd::value1}), we compare the numerical results between
+Navier-Stokes fluid and Stokes fluid when
+$\nu=1,\ 0.1,\ 0.01,\ h=0.05$ if figure
+(\ref{im::Navier-Stoke-solution}).  We can see that the fluids are not
+symmetric again. With the viscosity growing, the Moffatt eddies become
+more unstable. The bottom right corner eddy catches more energy from
+the prime eddy. We continue calculating until the viscosity comes to
+0.001. If the viscosity becomes too smaller, the process actully doesn't
+converge with the current linear solver. New method is needed.
 
-
-\indent Under same boundary value as (\ref{bd::value1}), let's see what difference will appear between Navier-Stokes fluid and Stokes fluid when $\nu=1,\ 0.1,\ 0.01,\ h=0.05$. (We use ilu precondition here provided by dealII.)
 \begin{figure}[h]
 \centering
 \includegraphics[scale = 0.2]{images/a.png}
@@ -314,8 +355,7 @@ From figure (\ref{im::log(h)-res}) we can see the method converges with a about 
 \caption{Navier-Stokes Solutions when $\nu$=1, 0.1, 0.01. The fluid becomes more asymmetry and bottom left corner catches more energy.}
 \label{im::Navier-Stoke-solution}
 \end{figure}
-\\
-We can see that the fluid is not symmetric again. With the viscosity growing, the Moffatt eddies become more unstable. The bottom right corner eddy catches more energy from the prime eddy. We continue calculating until the viscosity comes to 0.0001. If the viscosity becomes smaller, the process doesn't converge. New methods is needed.
+
 \subsection{Time Depending}
 Consider the equations that
 \begin{equation}
