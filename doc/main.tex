@@ -359,19 +359,20 @@ converge with the current linear solver. New method is needed.
 \end{figure}
 
 \subsection{Time Depending}
-Consider the equations that
+To deal with the cases with small viscosity, we consider the unsteady Navier-Stokes equations as following: 
 \begin{equation}
 \begin{array}{rcl}
-\frac{\partial \vec{u}}{\partial t} - \nu \nabla^2 \vec{u} + \vec{u} \cdot \nabla \vec{u} + \nabla p & = & \vec{F} \\
-\nabla \cdot \vec{u} & = & \vec{0}
+\frac{\partial \vec{u}}{\partial t} - \nu \nabla^2 \vec{u} + \vec{u} \cdot \nabla \vec{u} + \nabla p & = & \vec{F}, \\
+\nabla \cdot \vec{u} & = & \vec{0}.
 \label{eq::Timedepending-problem}
 \end{array}
 \end{equation}
-We add a time term to Navier-Stokes equations. The solution will converge to the Navier-Stokes solution under same boundary value when $t \to \infty$.
-
-
-We use implicit format $\frac{\partial u}{\partial t} = \frac{u^{n + 1}-u^{n}}{\Delta t}$ in $x$ and $y$ directions.
-Such that the iteration form changes
+The solution will converge to the steady Navier-Stokes solutions under same boundary values with $t \to \infty$.
+And backward Euler scheme
+$$
+\frac{\partial u}{\partial t} = \frac{u^{n + 1}-u^{n}}{\Delta t}
+$$
+is used for the time discretization. Then the iteration form changes to
 \begin{equation}
 \left[ \begin{array}{ccc}
 A + N + W_{xx} + T_x & W_{xy} & B_x^T \\
@@ -393,31 +394,48 @@ g
 \right],
 \label{Timedepending}
 \end{equation}
-where $T$ is the $n_u\times n_u$ time mass-matrix which takes the form
+where $T$ is the $n_u\times n_u$ time mass matrix which takes the form
 \begin{equation}
-T = [t_{ij}],\quad t_{ij}=\frac{1}{\Delta t}\int_{\Omega}\vec{\phi}_i\cdot\vec{\phi}_j,
+T = [t_{ij}], t_{ij}=\frac{1}{\Delta t} \int_{\Omega} \vec{\phi}_i
+\cdot \vec{\phi}_j,
 \end{equation}
-and the vector $t$ is the former velocity value that
+and the vector $t$ is the former velocity values that
 \begin{equation}
 t = [t_{k}],\quad t_{k}=\frac{1}{\Delta t}\int_{\Omega}\vec{u}_h\cdot\vec{\phi}_i.
 \end{equation}
 \\
 
 
-This simulation is to solve the Navier-Stokes equations while $\nu=0.00005(Re=2000)$. The solution finally converges to the figure (\ref{im::d}) which shows the method can continue calculating while $\nu$ is small.
+The figure (\ref{im::d}) give us the numerical results for
+$\nu=0.00005(Re=2000)$, which shows the capacity of the method. Of
+cause, this method is time consuming, however, for the small cases (Re
+$\leq 5000$), this is still reasonable.
+
 \begin{figure}[h]
 \centering
 \includegraphics[scale = 0.5]{images/e.png}
-\caption{Navier-Stokes solution, the stream lines of the velocity field, the square domain is $[0, 1] \times [0, 1]$ with mesh dimension $h=0.05$ and $\nu=0.00005$. The eddies become larger and new eddy comes to appear.}
+\caption{Navier-Stokes solution, the stream lines of the velocity
+  field, the square domain is $[0, 1] \times [0, 1]$ with mesh
+  dimension $h=0.05$ and $\nu=0.00005$. The eddies become larger and
+  new eddy comes to appear in the upper left.}
 \label{im::d}
 \end{figure}
 
+\section{Conclusion}
+A efficient mixed Taylor-Hood finite element(P1-P2) Stokes slover with
+AMG precondition is builded. The efficiency and accuracy are verified
+by bentch mark numerical tests. And for Navier-Stokes equations, we
+give a back Euler full implicit solver by Newton iteration, and for
+each linear step, an ILU precondition is used. Still, numerical
+results of a series of bentch mark tests shows the correctness of our
+method and code. All simulations are in 2D cases, but it is no
+difficulty except techniques and machine to extend them to 3D cases.
 
-Also we find new eddy comes to appear and the fluid becomes unstable in figure (\ref{im::d}). It shows with Reynolds number growing, new phenomenon will appear and the problem needs to introduce more theories.
-%i want to say the NS equations can't explain enough here, but i don't know if it is true.
 \section{Future Work}
 \subsection{Three-dimensional calculation}
-Actually we just calculate the equations in the plane. For actual calculation, we should extend it to three-dimensional space. The matrix form (\ref{Navier-Stokes}) is rewritten as
+Extending the current solver to three-dimensional space is not a big
+case in mathematics and algorithm level. The matrix form
+(\ref{Navier-Stokes}) is rewritten as
 \begin{equation}
 \left[ \begin{array}{cccc}
 A + N +W_{xx} & W_{xy} & W_{xz} & B_x^T \\
@@ -442,17 +460,27 @@ g
 \right].
 \label{3D-Navier-Stokes}
 \end{equation}
-But new 3D mesh-building tool is required in computer calculating.
+The most of the difficulties are technique challenges such as 3D
+geometry structure and mesh generation, which can be done in one
+month. And a high performance computer is also required.
+
 \subsection{Precondition}
-With the matrix size growing, better precondition is needed since ilu has limitation. Considering the time-depending Navier-Stokes equations (\ref{eq::Timedepending-problem}), we use semi-implicit scheme that
+With the matrix size growing, better precondition is needed since ilu
+has limitation since it is still $O(n^2)$ in time. Considering the
+time-depending Navier-Stokes equations
+(\ref{eq::Timedepending-problem}), if we use semi-implicit scheme like
 \begin{equation}
 \begin{array}{rcl}
-\frac{\vec{u}^{n+1}-\vec{u}^n}{\Delta t} - \nu \nabla^2 \vec{u}^{n+1} + \vec{u}^{n}\cdot \nabla \vec{u}^n + \nabla p^{n+1} &=& \vec{F} \\
-\nabla \cdot \vec{u}^{n+1} &=& \vec{0}
+\frac{\vec{u}^{n+1}-\vec{u}^n}{\Delta t} - \nu \nabla^2 \vec{u}^{n+1} + \vec{u}^{n}\cdot \nabla \vec{u}^n + \nabla p^{n+1} &=& \vec{F}, \\
+\nabla \cdot \vec{u}^{n+1} &=& \vec{0}.
 \label{eq::implicit and explicit}
 \end{array}
 \end{equation}
-Thus we change the equations to a time-developinig Stokes equations. Now we can use proper precondition like AMG block precondition given before to make the calculating more efficient.
+Then we got a Stokes system and can be solved efficiently by block AMG
+precondition given before. And full implicity scheme of steady
+Navier-Stokes equations, how to build a multi-grid solver is still an
+open problem.
+
 
 \bibliographystyle{alpha}
 \bibliography{sample}
